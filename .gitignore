@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Xcode local state and build output
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Local course documentation
+PostsCohort10/Documentation/
