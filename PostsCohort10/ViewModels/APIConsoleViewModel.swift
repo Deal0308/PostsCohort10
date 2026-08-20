@@ -32,9 +32,9 @@ final class APIConsoleViewModel: ObservableObject {
         ),
         APIConsoleEndpointStatus(
             id: "jobs",
-            name: "Arbeitnow Jobs",
+            name: "The Muse Jobs",
             method: "GET",
-            endpoint: "https://www.arbeitnow.com/api/job-board-api"
+            endpoint: "https://www.themuse.com/api/public/jobs?page=1"
         )
     ]
 
@@ -67,7 +67,7 @@ final class APIConsoleViewModel: ObservableObject {
     func loadJobs() async {
         await runEndpoint(id: "jobs") {
             let jobs = try await jobService.fetchJobs()
-            return ("Decoded Arbeitnow jobs", jobs.count)
+            return ("Decoded The Muse jobs", jobs.count)
         }
     }
 

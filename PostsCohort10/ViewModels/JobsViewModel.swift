@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-/// Manages job listings, loading state, errors, and local filters.
+/// Manages The Muse job listings, loading state, errors, and local filters.
 @MainActor
 final class JobsViewModel: ObservableObject {
     @Published private(set) var jobs: [Job] = []
@@ -9,36 +9,41 @@ final class JobsViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var hasLoaded = false
     @Published var searchText = ""
-    @Published var remoteOnly = false
 
     private let jobService: JobService
 
     var filteredJobs: [Job] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return jobs.filter { job in
-            let matchesRemote = !remoteOnly || job.remote
-            let matchesQuery = query.isEmpty ||
-                job.title.localizedCaseInsensitiveContains(query) ||
-                job.companyName.localizedCaseInsensitiveContains(query) ||
-                job.location.localizedCaseInsensitiveContains(query) ||
-                job.tags.contains { $0.localizedCaseInsensitiveContains(query) } ||
-                job.jobTypes.contains { $0.localizedCaseInsensitiveContains(query) }
+        guard !query.isEmpty else {
+            return jobs
+        }
 
-            return matchesRemote && matchesQuery
+        return jobs.filter { job in
+            job.name.localizedCaseInsensitiveContains(query) ||
+                job.company.name.localizedCaseInsensitiveContains(query) ||
+                job.locations.contains { $0.name.localizedCaseInsensitiveContains(query) } ||
+                job.categories.contains { $0.name.localizedCaseInsensitiveContains(query) } ||
+                job.levels.contains { $0.name.localizedCaseInsensitiveContains(query) } ||
+                job.tags.contains { $0.name.localizedCaseInsensitiveContains(query) }
         }
     }
 
-    var remoteJobCount: Int {
-        jobs.filter(\.remote).count
+    var categorySummary: String {
+        let categories = jobs.flatMap(\.categoryNames)
+        return Set(categories).count.formatted()
     }
 
     init(jobService: JobService? = nil) {
         self.jobService = jobService ?? JobService()
     }
 
-    func loadJobs() async {
+    func loadJobs(forceRefresh: Bool = false) async {
         guard !isLoading else {
+            return
+        }
+
+        if hasLoaded && !forceRefresh {
             return
         }
 

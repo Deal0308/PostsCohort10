@@ -16,6 +16,12 @@ struct APIClient {
             throw APIError.invalidResponse
         }
 
+        if httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
+                .flatMap(TimeInterval.init)
+            throw APIError.rateLimited(retryAfter: retryAfter)
+        }
+
         guard (200...299).contains(httpResponse.statusCode) else {
             throw APIError.unsuccessfulStatusCode(httpResponse.statusCode)
         }
@@ -40,6 +46,7 @@ enum APIError: LocalizedError {
     case decodingFailed(String)
     case invalidPostID
     case emptyResponse
+    case rateLimited(retryAfter: TimeInterval?)
 
     var errorDescription: String? {
         switch self {
@@ -57,6 +64,12 @@ enum APIError: LocalizedError {
             return "Enter a post number greater than zero."
         case .emptyResponse:
             return "The API returned no data."
+        case .rateLimited(let retryAfter):
+            if let retryAfter {
+                return "Too many requests. Please wait about \(Int(retryAfter)) seconds before trying again."
+            }
+
+            return "Too many requests. Please wait a moment before trying again."
         }
     }
 }

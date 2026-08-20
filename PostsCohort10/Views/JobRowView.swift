@@ -4,7 +4,7 @@ struct JobRowView: View {
     let job: Job
 
     private var accentColor: Color {
-        job.remote ? .teal : .indigo
+        .teal
     }
 
     var body: some View {
@@ -22,31 +22,37 @@ struct JobRowView: View {
                 .frame(width: 50, height: 50)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(job.title)
+                    Text(job.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Label(job.companyName, systemImage: "building.2")
+                    Label(job.companyDisplayName, systemImage: "building.2")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
             }
 
-            HStack(spacing: 8) {
-                Label(job.location.isEmpty ? "Location not listed" : job.location, systemImage: "mappin.and.ellipse")
-                Text(job.remote ? "Remote" : "On-site")
-                    .font(.caption.weight(.bold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(accentColor.opacity(0.15), in: Capsule())
-                    .foregroundStyle(accentColor)
+            VStack(alignment: .leading, spacing: 7) {
+                Label(job.locationNames, systemImage: "mappin.and.ellipse")
+
+                if let firstLevel = job.firstLevel {
+                    Label(firstLevel, systemImage: "chart.bar.fill")
+                }
+
+                if let firstCategory = job.firstCategory {
+                    Label(firstCategory, systemImage: "folder.fill")
+                }
+
+                if let formattedDate = formattedDate {
+                    Label("Posted \(formattedDate)", systemImage: "calendar")
+                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
 
-            if !job.jobTypes.isEmpty || !job.tags.isEmpty {
-                FlowTagsView(tags: Array((job.jobTypes + job.tags).prefix(3)), accentColor: accentColor)
+            if !job.tagNames.isEmpty {
+                FlowTagsView(tags: Array(job.tagNames.prefix(3)), accentColor: accentColor)
             }
         }
         .padding(16)
@@ -57,7 +63,11 @@ struct JobRowView: View {
         }
         .shadow(color: accentColor.opacity(0.12), radius: 10, x: 0, y: 5)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(job.title), \(job.companyName), \(job.location), \(job.remote ? "Remote" : "On-site")")
+        .accessibilityLabel("\(job.name), \(job.companyDisplayName), \(job.locationNames)")
+    }
+
+    private var formattedDate: String? {
+        job.publishedDate?.formatted(date: .abbreviated, time: .omitted)
     }
 }
 
@@ -81,7 +91,23 @@ struct FlowTagsView: View {
 }
 
 #Preview {
-    JobRowView(job: Job(slug: "sample", companyName: "Example Co", title: "iOS Developer", description: "<p>Build apps.</p>", remote: true, url: "https://example.com", tags: ["Swift", "SwiftUI"], jobTypes: ["Full-time"], location: "Remote", createdAt: 1_725_000_000))
-        .padding()
-        .background(Color(uiColor: .systemGroupedBackground))
+    JobRowView(
+        job: Job(
+            contents: "<p>Build apps.</p>",
+            name: "iOS Developer",
+            type: "external",
+            publicationDate: "2026-08-20T05:00:07Z",
+            shortName: "ios-developer",
+            modelType: "jobs",
+            id: 1,
+            locations: [JobAttribute(name: "Houston, TX", shortName: nil)],
+            categories: [JobAttribute(name: "Software Engineering", shortName: nil)],
+            levels: [JobAttribute(name: "Mid Level", shortName: "mid")],
+            tags: [JobAttribute(name: "Swift", shortName: "swift")],
+            refs: JobReferences(landingPage: "https://www.themuse.com"),
+            company: JobCompany(id: 1, shortName: "example", name: "Example Co")
+        )
+    )
+    .padding()
+    .background(Color(uiColor: .systemGroupedBackground))
 }

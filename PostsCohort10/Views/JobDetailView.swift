@@ -3,13 +3,8 @@ import SwiftUI
 struct JobDetailView: View {
     let job: Job
 
-    private var jobURL: URL? {
-        URL(string: job.url)
-    }
-
     private var formattedDate: String? {
-        guard let date = job.createdDate else { return nil }
-        return date.formatted(date: .abbreviated, time: .omitted)
+        job.publishedDate?.formatted(date: .abbreviated, time: .omitted)
     }
 
     var body: some View {
@@ -37,16 +32,16 @@ struct JobDetailView: View {
 
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label(job.remote ? "Remote role" : "On-site role", systemImage: job.remote ? "house.fill" : "building.2.fill")
+            Label("The Muse listing", systemImage: "briefcase.fill")
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(job.remote ? .teal : .indigo)
+                .foregroundStyle(.teal)
 
-            Text(job.title)
+            Text(job.name)
                 .font(.title2.bold())
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(job.companyName)
+            Text(job.companyDisplayName)
                 .font(.headline)
                 .foregroundStyle(.secondary)
         }
@@ -61,26 +56,33 @@ struct JobDetailView: View {
 
     private var detailsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(job.location.isEmpty ? "Location not listed" : job.location, systemImage: "mappin.and.ellipse")
-            Label(job.jobTypes.isEmpty ? "Job type not listed" : job.jobTypes.joined(separator: ", "), systemImage: "clock")
+            Label(job.locationNames, systemImage: "mappin.and.ellipse")
+
+            if !job.levelNames.isEmpty {
+                Label(job.levelNames.joined(separator: ", "), systemImage: "chart.bar.fill")
+            }
+
+            if !job.categoryNames.isEmpty {
+                Label(job.categoryNames.joined(separator: ", "), systemImage: "folder.fill")
+            }
 
             if let formattedDate {
-                Label("Posted \(formattedDate)", systemImage: "calendar")
+                Label("Published \(formattedDate)", systemImage: "calendar")
             }
 
-            if !job.tags.isEmpty {
-                FlowTagsView(tags: job.tags, accentColor: .teal)
+            if !job.tagNames.isEmpty {
+                FlowTagsView(tags: job.tagNames, accentColor: .teal)
             }
 
-            if let jobURL {
-                Link(destination: jobURL) {
-                    Label("View Original Job", systemImage: "arrow.up.right.square")
+            if let applicationURL = job.applicationURL {
+                Link(destination: applicationURL) {
+                    Label("View Job on The Muse", systemImage: "arrow.up.right.square")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .accessibilityHint("Opens the original Arbeitnow job listing in a browser.")
+                .accessibilityHint("Opens the original The Muse job listing in a browser.")
             }
         }
         .font(.body)
@@ -108,6 +110,22 @@ struct JobDetailView: View {
 
 #Preview {
     NavigationStack {
-        JobDetailView(job: Job(slug: "sample", companyName: "Example Co", title: "Senior SwiftUI Developer", description: "<p>Build useful software.</p>", remote: true, url: "https://example.com", tags: ["Swift", "iOS"], jobTypes: ["Full-time"], location: "Remote", createdAt: 1_725_000_000))
+        JobDetailView(
+            job: Job(
+                contents: "<p>Build useful software.</p>",
+                name: "Senior SwiftUI Developer",
+                type: "external",
+                publicationDate: "2026-08-20T05:00:07Z",
+                shortName: "swiftui-developer",
+                modelType: "jobs",
+                id: 1,
+                locations: [JobAttribute(name: "Remote", shortName: nil)],
+                categories: [JobAttribute(name: "Software Engineering", shortName: nil)],
+                levels: [JobAttribute(name: "Senior Level", shortName: "senior")],
+                tags: [JobAttribute(name: "Swift", shortName: "swift")],
+                refs: JobReferences(landingPage: "https://www.themuse.com"),
+                company: JobCompany(id: 1, shortName: "example", name: "Example Co")
+            )
+        )
     }
 }

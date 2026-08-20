@@ -1,8 +1,8 @@
 import Foundation
 
-/// Handles Arbeitnow job board endpoint calls.
+/// Handles The Muse public jobs endpoint calls.
 struct JobService {
-    private let endpoint = "https://www.arbeitnow.com/api/job-board-api"
+    private let endpoint = "https://www.themuse.com/api/public/jobs?page=1"
     private let apiClient: APIClient
 
     init(apiClient: APIClient = APIClient()) {
@@ -16,10 +16,10 @@ struct JobService {
 
         let response = try await apiClient.fetch(from: url, as: JobResponse.self)
 
-        guard !response.data.isEmpty else {
+        guard !response.results.isEmpty else {
             throw APIError.emptyResponse
         }
 
-        return response.data
+        return response.results
     }
 }

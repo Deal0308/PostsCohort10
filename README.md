@@ -1,16 +1,12 @@
 # PostsCohort10
 
-## Overview
+PostsCohort10 is a SwiftUI content-and-careers app for the revised networking assignment. It displays downloaded data from two free public APIs, follows MVVM, uses `URLSession` and `Codable`, and presents the data in a polished three-tab interface.
 
-PostsCohort10 is a SwiftUI content-and-careers app built for the revised networking assignment. It uses two free public APIs, follows MVVM, performs real network calls with `URLSession`, decodes JSON with `Codable`, and presents downloaded data in a professional three-tab interface.
+## What the App Does
 
-## Tabs
+The app loads a social-style posts feed from JSONPlaceholder and a careers feed from The Muse Jobs API during the normal startup workflow. Users can search posts, look up an exact post number from the API, browse The Muse job listings, open detail screens, refresh failed requests, and use a read-only API Console to trigger each endpoint manually.
 
-- `Posts`: JSONPlaceholder social-style posts feed with post search and detail navigation.
-- `Jobs`: Arbeitnow job board feed with search, remote filtering, and job details.
-- `API`: Read-only API demonstration console for manually triggering each endpoint.
-
-## APIs and Endpoints
+## APIs
 
 JSONPlaceholder posts:
 
@@ -24,144 +20,149 @@ JSONPlaceholder post by ID:
 https://jsonplaceholder.typicode.com/posts/{id}
 ```
 
-Arbeitnow jobs:
+The Muse jobs:
 
 ```text
-https://www.arbeitnow.com/api/job-board-api
+https://www.themuse.com/api/public/jobs?page=1
 ```
 
-Arbeitnow requires no API key.
+No API key, token, secret, or authentication header is required.
 
 ## Guaranteed Network Calls
 
-The normal root workflow starts both main API requests:
+The root tab view starts the two required primary API requests together:
 
 ```text
-RootTabView.task
+RootTabView
 → PostsViewModel.loadPosts()
 → PostService.fetchPosts()
 → APIClient.fetch()
+→ URLSession
 
-RootTabView.task
+RootTabView
 → JobsViewModel.loadJobs()
 → JobService.fetchJobs()
 → APIClient.fetch()
+→ URLSession
 ```
 
-`RootTabView` uses structured concurrency so posts and jobs load together without fake delays.
+Numeric post search adds an extra request only after the user submits a search, such as `/posts/25`. Text search remains local and does not call the network while typing.
 
 ## Assignment Compliance
 
 | Requirement | Evidence |
 | ----------- | -------- |
-| Free API data | JSONPlaceholder and Arbeitnow |
+| Free API data | JSONPlaceholder and The Muse |
 | MVVM | Separate models, services, ViewModels, and views |
 | First network call | `PostService.fetchPosts()` |
 | Second network call | `JobService.fetchJobs()` |
-| Additional network call | `PostService.fetchPost(id:)` |
+| Additional call | `PostService.fetchPost(id:)` |
 | URLSession | Shared `APIClient` |
-| Codable | Post, Job, and JobResponse |
-| Error handling | APIError and screen error states |
-| Slow connection loading | Independent Posts and Jobs loading states |
-| Retry support | Retry actions on both tabs |
-| Data display | Posts feed and Jobs feed |
+| Codable | Post, Job, JobResponse, and supporting models |
+| Error handling | `APIError` and screen-specific states |
+| Rate limiting | Dedicated HTTP 429 handling |
+| Slow connection loading | Independent loading states |
+| Retry controls | Posts and Jobs retry actions |
+| Data display | Posts feed and The Muse jobs feed |
+
+## Features
+
+- Three-tab interface: Posts, Jobs, and API Console.
+- JSONPlaceholder posts feed with modern cards and post details.
+- Post search by title and body, plus exact post-number API lookup.
+- The Muse jobs feed with job cards, search, details, cleaned HTML descriptions, and external links.
+- Read-only API Console with buttons for all posts, post by ID, jobs, and refresh all endpoints.
+- Independent loading, error, empty, and retry states for Posts and Jobs.
+- HTTP 429 rate-limit handling with a readable wait message when `Retry-After` is available.
+- Pull-to-refresh on data feeds.
+- Light Mode and Dark Mode support using semantic colors.
+- Accessibility labels, hints, readable ordering, and Dynamic Type-friendly layouts.
 
 ## MVVM Structure
 
+- Model: `Post`, `Job`, `JobResponse`, `JobAttribute`, `JobReferences`, and `JobCompany` represent decoded API data.
+- Networking: `APIClient` performs shared `URLSession` requests, HTTP validation, rate-limit handling, empty-response checks, and JSON decoding.
+- Service: `PostService` and `JobService` define endpoint-specific API calls.
+- ViewModel: `PostsViewModel`, `JobsViewModel`, and `APIConsoleViewModel` own screen state and call services.
+- View: SwiftUI views display state, handle user interaction, and never perform networking directly.
+
+## Project Structure
+
 ```text
-Models
-├── Post.swift
-├── Job.swift
-└── JobResponse.swift
-
-Networking
-└── APIClient.swift
-
-Services
-├── PostService.swift
-└── JobService.swift
-
-ViewModels
-├── PostsViewModel.swift
-├── JobsViewModel.swift
-└── APIConsoleViewModel.swift
-
-Views
-├── RootTabView.swift
-├── PostsView.swift
-├── PostRowView.swift
-├── PostDetailView.swift
-├── JobsView.swift
-├── JobRowView.swift
-├── JobDetailView.swift
-└── APIConsoleView.swift
-
-Documentation
-└── Implementation Report.md
+PostsCohort10
+├── Models
+│   ├── Post.swift
+│   ├── Job.swift
+│   └── JobResponse.swift
+├── Networking
+│   └── APIClient.swift
+├── Services
+│   ├── PostService.swift
+│   └── JobService.swift
+├── ViewModels
+│   ├── PostsViewModel.swift
+│   ├── JobsViewModel.swift
+│   └── APIConsoleViewModel.swift
+├── Views
+│   ├── RootTabView.swift
+│   ├── PostsView.swift
+│   ├── PostRowView.swift
+│   ├── PostDetailView.swift
+│   ├── JobsView.swift
+│   ├── JobRowView.swift
+│   ├── JobDetailView.swift
+│   └── APIConsoleView.swift
+├── Assets.xcassets
+├── ContentView.swift
+├── PostsCohort10App.swift
+└── README.md
 ```
 
-## Shared API Client
+## Search and Filtering
 
-`APIClient` performs shared HTTP work for every endpoint. It uses `URLSession.shared.data(from:)`, validates HTTP responses, accepts only 200 through 299 status codes, rejects empty data, and decodes the requested `Decodable` type.
+Posts support two search paths. Text queries search already-downloaded post titles and body content locally. Numeric queries are submitted explicitly with the keyboard Search action or search button and request the exact post from JSONPlaceholder by ID.
 
-`APIError` distinguishes invalid URLs, request failures, invalid responses, unsuccessful status codes, decoding failures, invalid post IDs, and empty responses.
+Jobs search is fully local. It searches The Muse job title, company name, location names, category names, experience level names, and tag names without making extra API requests.
 
-## Posts Features
+## Error and Loading Behavior
 
-- Loads all posts during normal app startup.
-- Retries failed all-post requests.
-- Supports pull-to-refresh.
-- Searches title/body locally after keyboard Search submission.
-- Searches exact numeric post IDs through `/posts/{id}` after keyboard Search submission.
-- Does not call the API while the user is typing.
-- Shows separate states for initial loading, initial failure, API empty response, numeric search loading, search failure, and text no-results.
+`APIClient` distinguishes invalid URLs, transport failures, invalid responses, HTTP 429 rate limits, other non-2xx status codes, empty responses, decoding failures, and invalid post IDs. Each feed has its own loading and error state so one API failure does not erase successful data from the other tab.
 
-## Jobs Features
-
-- Loads Arbeitnow jobs during normal app startup.
-- Shows total jobs and remote jobs.
-- Supports local search by title, company, location, tags, and job type.
-- Supports a remote-only filter.
-- Cleans HTML descriptions into readable text without third-party packages.
-- Opens validated original job URLs with `View Original Job`.
-- Provides independent loading, error, empty, retry, refresh, and pull-to-refresh behavior.
+If content already exists during a refresh, the app keeps the current content visible and disables duplicate refresh actions while the request is running.
 
 ## API Console
 
-The API tab is a read-only demonstration console. It provides controls for:
+The API Console is a read-only demonstration screen. It provides controls for:
 
 - Load All Posts
 - Load Post by ID
 - Load Jobs
 - Refresh All Endpoints
 
-It displays endpoint name, HTTP method, loading status, success status, decoded record count, last successful refresh time, and readable errors. It does not claim administrative privileges and does not perform writes.
+It reports endpoint names, HTTP method, URL, loading status, success counts, last successful refresh time, and readable errors. It does not provide admin access and does not perform write operations.
 
-## Accessibility and Appearance
-
-The app uses semantic colors, SF Symbols, readable cards, labels and hints for important controls, Dynamic Type-friendly layouts, and Light Mode/Dark Mode support.
-
-## Running the Project
+## Opening and Running
 
 1. Open `PostsCohort10.xcodeproj` in Xcode.
-2. Select an iOS Simulator.
-3. Build and run.
-4. Confirm the Posts and Jobs tabs load automatically.
-5. Use the API tab to manually trigger each public endpoint.
+2. Select an iOS Simulator destination.
+3. Build and run the app.
+4. Confirm the Posts and Jobs tabs load downloaded API data.
+5. Use the API Console tab to manually trigger each endpoint.
 
-## Screenshot Placeholders
+## Screenshots
 
-Add screenshots before submission:
+Add simulator screenshots before submission:
 
-- Posts feed loaded
-- Jobs feed loaded
-- Numeric Post #25 search
-- Local text post search
-- Job search and remote filter
-- API Console success statuses
-- Error or retry state if available
-- Light Mode and Dark Mode examples
+- Posts feed in Light Mode
+- Posts feed in Dark Mode
+- Post search or post-number lookup
+- Jobs feed
+- Job detail screen
+- API Console
+- Error or loading state if required by the instructor
+
+No screenshots are included in this repository yet.
 
 ## Known Issues
 
-No known compile, API decoding, or view-model workflow issues after verification. Full manual Simulator interaction and screenshots remain to be completed before submission.
+No known functional issues. Public APIs can still fail because of connectivity problems, temporary service outages, rate limiting, or changed response formats. The app shows readable error states and retry controls for those cases.
